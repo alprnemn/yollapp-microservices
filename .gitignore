@@ -1,0 +1,22 @@
+# IDE files
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+
+# ignore all environment files in any files
+.env
+.env.*
+
+# Go build and binaries
+/bin
+*.exe
+*.out
+*.test
+*.cover
+
+# OS and System files
+.DS_Store
+Thumbs.db
+
