@@ -1,5 +1,0 @@
-package apigateway
-
-func main() {
-
-}
