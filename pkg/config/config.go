@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 // GetString gets config as a string using key
@@ -39,4 +40,20 @@ func GetBool(key string, fallback bool) bool {
 		return fallback
 	}
 	return boolVal
+}
+
+// GetSlice gets string slice from .env
+func GetSlice(key string, fallback []string) []string {
+	val := os.Getenv(key)
+	if val == "" {
+		return fallback
+	}
+
+	parts := strings.Split(val, ",")
+
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
+
+	return parts
 }

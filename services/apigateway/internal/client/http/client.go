@@ -1,4 +1,4 @@
-package client
+package http
 
 import (
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"

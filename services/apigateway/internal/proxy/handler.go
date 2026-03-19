@@ -1,8 +1,9 @@
 package proxy
 
 import (
+	"github.com/alprnemn/yollapp-microservices/pkg/json"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/circuitbreaker"
-	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/client"
+	cl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/client/http"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
 	"io"
 	"log"
@@ -16,7 +17,7 @@ import (
 // and forwards them to appropriate backend services.
 type Handler struct {
 	routes         map[string]*url.URL
-	client         *client.Client
+	client         *cl.Client
 	timeout        time.Duration
 	rewriteMap     map[string]string
 	circuitBreaker *circuitbreaker.CircuitBreaker
@@ -26,7 +27,7 @@ type Handler struct {
 func NewHandler(cfg config.ClientConfig, cbCfg config.CircuitBreakerConfig) *Handler {
 	return &Handler{
 		routes:         make(map[string]*url.URL),
-		client:         client.NewClient(cfg),
+		client:         cl.NewClient(cfg),
 		timeout:        cfg.Timeout,
 		rewriteMap:     make(map[string]string),
 		circuitBreaker: circuitbreaker.NewCircuitBreaker(cbCfg),
@@ -46,6 +47,7 @@ func (h *Handler) AddRoute(prefix string, backend string) error {
 	return nil
 }
 
+// RegisterRoutes registers all route prefixes and maps them to backend services.
 func (h *Handler) RegisterRoutes() {
 	err := h.AddRoute("/users", "http://127.0.0.1:8082")
 	if err != nil {
@@ -53,6 +55,15 @@ func (h *Handler) RegisterRoutes() {
 	}
 }
 
+// ServeHTTP implements the http.Handler interface.
+// It acts as a reverse proxy entry point:
+//  1. Matches incoming request path to a backend using the longest prefix match
+//  2. Creates a new request targeting the selected backend
+//  3. Sends the request via a circuit breaker for resilience
+//  4. Copies the backend response back to the client
+//
+// It also logs request details such as method, path, target service,
+// response status, and latency for observability.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	startTime := time.Now()
@@ -68,7 +79,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if targetURL == nil {
-		http.Error(w, "Service not found", http.StatusNotFound)
+		json.WriteError(w, http.StatusNotFound, "service not found")
 		return
 	}
 
@@ -78,7 +89,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Execute request with circuit breaker
 	resp, err := h.circuitBreaker.Execute(outReq)
 	if err != nil {
-		http.Error(w, "Backend error", http.StatusBadGateway)
+		json.WriteError(w, http.StatusBadGateway, "backend error")
 		log.Printf("Backend error: %v", err)
 		return
 	}
@@ -108,6 +119,14 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
+// createProxyRequest builds a new HTTP request to sent to the target backend.
+// It:
+//  1. Clones the incoming request URL and replaces scheme + host
+//  2. Merges query parameters from both incoming request and target
+//  3. Copies all headers to preserve metadata (auth, content-type, etc.)
+//  4. Adds X-Forwarded-* headers to provide client context to the backend
+//
+// The returned request shares the original context for proper timeout and cancellation handling.
 func (h *Handler) createProxyRequest(req *http.Request, target *url.URL) *http.Request {
 
 	targetQuery := target.RawQuery
@@ -132,6 +151,7 @@ func (h *Handler) createProxyRequest(req *http.Request, target *url.URL) *http.R
 		log.Printf("Error creating proxy request: %v", err)
 		return nil
 	}
+
 	// Copy original headers
 	for key, values := range req.Header {
 		for _, value := range values {

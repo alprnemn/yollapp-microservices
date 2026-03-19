@@ -13,6 +13,16 @@ type Config struct {
 	RLConfig       RLConfig
 	JWTConfig      JWTConfig
 	CircuitBreaker CircuitBreakerConfig
+	CORSConfig     CORSConfig
+}
+
+type CORSConfig struct {
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	ExposedHeaders   []string
+	AllowCredentials bool
+	MaxAge           int
 }
 
 type ServerConfig struct {
@@ -85,6 +95,18 @@ func Load() Config {
 		CircuitBreaker: CircuitBreakerConfig{
 			FailureThreshold: config.GetInt("CB_FAILURE_THRESHOLD", 5),
 			ResetTimeout:     time.Duration(config.GetInt("CB_RESET_TIMEOUT_SEC", 10)) * time.Second,
+		},
+		CORSConfig: CORSConfig{
+			AllowedOrigins:   config.GetSlice("CORS_ALLOWED_ORIGINS", []string{"http://127.0.0.1:3000"}),
+			AllowedMethods:   config.GetSlice("CORS_ALLOWED_METHODS", []string{"*"}),
+			AllowedHeaders:   config.GetSlice("CORS_ALLOWED_HEADERS", []string{"*"}),
+			ExposedHeaders:   config.GetSlice("CORS_EXPOSED_HEADERS", []string{"*"}),
+			AllowCredentials: config.GetBool("CORS_ALLOWED_CREDENTIALS", true),
+			MaxAge:           config.GetInt("CORS_MAX_AGE", 300),
+		},
+		RLConfig: RLConfig{
+			WindowSize: time.Duration(config.GetInt("RL_WINDOW_SIZE", 60)) * time.Second,
+			Limit:      config.GetInt("RL_LIMIT", 100),
 		},
 	}
 
