@@ -108,6 +108,11 @@ func Load() Config {
 			WindowSize: time.Duration(config.GetInt("RL_WINDOW_SIZE", 60)) * time.Second,
 			Limit:      config.GetInt("RL_LIMIT", 100),
 		},
+		JWTConfig: JWTConfig{
+			Secret: config.GetString("JWT_SECRET_KEY", "asdasd"),
+			Issuer: config.GetString("JWT_ISSUER", "asdfg"),
+			Exp:    time.Duration(config.GetInt("JWT_EXP_SECOND", 15)),
+		},
 	}
 
 }

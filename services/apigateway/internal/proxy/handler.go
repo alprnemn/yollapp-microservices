@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"github.com/alprnemn/yollapp-microservices/pkg/json"
+	"github.com/alprnemn/yollapp-microservices/pkg/utils"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/circuitbreaker"
 	cl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/client/http"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
@@ -79,7 +79,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if targetURL == nil {
-		json.WriteError(w, http.StatusNotFound, "service not found")
+		utils.WriteError(w, http.StatusNotFound, "service not found")
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Execute request with circuit breaker
 	resp, err := h.circuitBreaker.Execute(outReq)
 	if err != nil {
-		json.WriteError(w, http.StatusBadGateway, "backend error")
+		utils.WriteError(w, http.StatusBadGateway, "backend error")
 		log.Printf("Backend error: %v", err)
 		return
 	}

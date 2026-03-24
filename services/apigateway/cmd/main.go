@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/ratelimiter/slidingwindow"
-	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/server/http"
+	server "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/server/http"
 	"log"
 )
 
@@ -16,7 +16,7 @@ func main() {
 		cfg.RLConfig.Limit,
 	)
 
-	if err := http.New(
+	if err := server.New(
 		cfg,
 		rateLimiter,
 	).Run(); err != nil {

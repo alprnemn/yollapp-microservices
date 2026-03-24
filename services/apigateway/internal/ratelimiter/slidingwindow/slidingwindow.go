@@ -1,8 +1,11 @@
 package slidingwindow
 
 import (
-	"github.com/alprnemn/yollapp-microservices/pkg/json"
+	"errors"
+	"github.com/alprnemn/yollapp-microservices/pkg/utils"
+	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -95,13 +98,33 @@ func (l *SlidingWindowRateLimiter) cleanup() {
 // If not allowed, it returns HTTP 429 Too Many Requests.
 func (l *SlidingWindowRateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		key := r.RemoteAddr // Or use a more sophisticated key
 
-		if !l.Allow(key) {
-			json.WriteError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		host, err := l.ExtractHostFromRemoteAddr(r.RemoteAddr)
+		if err != nil {
+			utils.WriteError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		if !l.Allow(host) {
+			utils.WriteError(w, http.StatusTooManyRequests, "rate limit exceeded")
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// ExtractHostFromRemoteAddr splits host and ports and returns host
+func (l *SlidingWindowRateLimiter) ExtractHostFromRemoteAddr(addr string) (string, error) {
+
+	if addr == "" {
+		return "", errors.New("addr must be not empty")
+	}
+
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", errors.New("error splitting host and port")
+	}
+
+	return strings.TrimSpace(host), nil
 }
