@@ -2,7 +2,7 @@ package slidingwindow
 
 import (
 	"errors"
-	"github.com/alprnemn/yollapp-microservices/pkg/utils"
+	"github.com/alprnemn/yollapp-microservices/shared/utils"
 	"net"
 	"net/http"
 	"strings"

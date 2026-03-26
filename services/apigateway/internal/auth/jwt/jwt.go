@@ -9,19 +9,22 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
+	"time"
 )
 
+// login
+
 type Authenticator struct {
-	secret   string
-	audience string
-	issuer   string
+	secret string
+	exp    time.Duration
+	issuer string
 }
 
-func NewJWTAuthenticator(secret, audience, issuer string) *Authenticator {
+func NewJWTAuthenticator(exp time.Duration, secret, issuer string) *Authenticator {
 	return &Authenticator{
-		secret:   secret,
-		audience: audience,
-		issuer:   issuer,
+		secret: secret,
+		exp:    exp,
+		issuer: issuer,
 	}
 }
 
@@ -46,8 +49,8 @@ func (a *Authenticator) ValidateToken(token string) (*jwt.Token, error) {
 	}
 
 	t, err := jwt.Parse(token, keyFunc, jwt.WithExpirationRequired(),
-		jwt.WithAudience(a.audience),
-		jwt.WithIssuer(a.audience),
+		jwt.WithAudience(a.issuer),
+		jwt.WithIssuer(a.issuer),
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 
 	if err != nil {
@@ -78,6 +81,8 @@ func (a *Authenticator) ValidateToken(token string) (*jwt.Token, error) {
 
 func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO : Check after user and auth completed
+
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			u.BadRequestResponse(w, r, e.ErrMissingAuthHeader)
@@ -101,6 +106,5 @@ func (a *Authenticator) Middleware(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
-
 	})
 }

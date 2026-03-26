@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/auth/jwt"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/proxy"
 	rl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/ratelimiter/slidingwindow"
@@ -19,16 +20,18 @@ import (
 
 // Server represents the HTTP server with its configuration and root handler.
 type Server struct {
-	Config      config.Config
-	Handler     http.Handler
-	RateLimiter *rl.SlidingWindowRateLimiter
+	Config        config.Config
+	Handler       http.Handler
+	RateLimiter   *rl.SlidingWindowRateLimiter
+	Authenticator *jwt.Authenticator
 }
 
 // New creates a new Server instance and initializes routes/middleware.
-func New(cfg config.Config, rateLimiter *rl.SlidingWindowRateLimiter) *Server {
+func New(cfg config.Config, rateLimiter *rl.SlidingWindowRateLimiter, authenticator *jwt.Authenticator) *Server {
 	s := &Server{
-		Config:      cfg,
-		RateLimiter: rateLimiter,
+		Config:        cfg,
+		RateLimiter:   rateLimiter,
+		Authenticator: authenticator,
 	}
 	s.Mount()
 	return s
