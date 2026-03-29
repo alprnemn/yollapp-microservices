@@ -7,6 +7,7 @@ import (
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/proxy"
 	rl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/ratelimiter/slidingwindow"
+	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/validator"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -20,18 +21,16 @@ import (
 
 // Server represents the HTTP server with its configuration and root handler.
 type Server struct {
-	Config        config.Config
-	Handler       http.Handler
-	RateLimiter   *rl.SlidingWindowRateLimiter
-	Authenticator *jwt.Authenticator
+	Config      config.Config
+	Handler     http.Handler
+	RateLimiter *rl.SlidingWindowRateLimiter
 }
 
 // New creates a new Server instance and initializes routes/middleware.
-func New(cfg config.Config, rateLimiter *rl.SlidingWindowRateLimiter, authenticator *jwt.Authenticator) *Server {
+func New(cfg config.Config, rateLimiter *rl.SlidingWindowRateLimiter) *Server {
 	s := &Server{
-		Config:        cfg,
-		RateLimiter:   rateLimiter,
-		Authenticator: authenticator,
+		Config:      cfg,
+		RateLimiter: rateLimiter,
 	}
 	s.Mount()
 	return s
@@ -56,8 +55,15 @@ func (s *Server) Mount() {
 	}))
 
 	r.Use(s.RateLimiter.Middleware)
+	r.Use(validator.ValidateJSON)
 
-	proxyHandler := proxy.NewHandler(s.Config.ClientConfig, s.Config.CircuitBreaker)
+	authenticator := jwt.NewTokenValidator(
+		s.Config.JWTConfig.Exp,
+		s.Config.JWTConfig.Secret,
+		s.Config.JWTConfig.Issuer,
+	)
+
+	proxyHandler := proxy.NewHandler(s.Config.ClientConfig, s.Config.CircuitBreaker, authenticator)
 
 	proxyHandler.RegisterRoutes()
 

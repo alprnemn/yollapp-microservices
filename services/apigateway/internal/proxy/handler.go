@@ -1,10 +1,15 @@
 package proxy
 
 import (
-	"github.com/alprnemn/yollapp-microservices/pkg/utils"
+	"context"
+	"errors"
+	auth "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/auth/jwt"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/circuitbreaker"
 	cl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/client/http"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
+	e "github.com/alprnemn/yollapp-microservices/services/apigateway/pkg/errors"
+	"github.com/alprnemn/yollapp-microservices/shared/utils"
+	"github.com/golang-jwt/jwt/v5"
 	"io"
 	"log"
 	"net/http"
@@ -13,46 +18,70 @@ import (
 	"time"
 )
 
+type ServiceURL struct {
+	Url         *url.URL
+	RequireAuth bool
+}
+
 // Handler represents a reverse proxy handler that receives HTTP requests
 // and forwards them to appropriate backend services.
 type Handler struct {
-	routes         map[string]*url.URL
+	Routes         map[string]*ServiceURL
 	client         *cl.Client
 	timeout        time.Duration
 	rewriteMap     map[string]string
 	circuitBreaker *circuitbreaker.CircuitBreaker
+	TokenValidator *auth.TokenValidator
 }
 
 // NewHandler creates Handler instance using timeout and cfg
-func NewHandler(cfg config.ClientConfig, cbCfg config.CircuitBreakerConfig) *Handler {
+func NewHandler(cfg config.ClientConfig, cbCfg config.CircuitBreakerConfig, tokenValidator *auth.TokenValidator) *Handler {
 	return &Handler{
-		routes:         make(map[string]*url.URL),
+		Routes:         make(map[string]*ServiceURL),
 		client:         cl.NewClient(cfg),
 		timeout:        cfg.Timeout,
 		rewriteMap:     make(map[string]string),
 		circuitBreaker: circuitbreaker.NewCircuitBreaker(cbCfg),
+		TokenValidator: tokenValidator,
 	}
 }
 
 // AddRoute registers a new routing rule in the handler.
 // It maps an incoming request path prefix to a backend service URL.
-func (h *Handler) AddRoute(prefix string, backend string) error {
+func (h *Handler) AddRoute(prefix string, serviceAddr string, requireAuth bool) error {
 
-	backendURL, err := url.Parse(backend)
+	serviceURL, err := url.Parse(serviceAddr)
 	if err != nil {
 		return err
 	}
 
-	h.routes[prefix] = backendURL
+	URL := &ServiceURL{
+		Url:         serviceURL,
+		RequireAuth: requireAuth,
+	}
+
+	h.Routes[prefix] = URL
 	return nil
 }
 
 // RegisterRoutes registers all route prefixes and maps them to backend services.
 func (h *Handler) RegisterRoutes() {
-	err := h.AddRoute("/users", "http://127.0.0.1:8082")
+
+	err := h.AddRoute("/user", "http://127.0.0.1:8081", true)
 	if err != nil {
 		panic(err)
 	}
+
+	err = h.AddRoute("/auth/register", "http://127.0.0.1:8082", false)
+	if err != nil {
+		panic(err)
+	}
+
+	err = h.AddRoute("/auth/login", "http://127.0.0.1:8082", false)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 // ServeHTTP implements the http.Handler interface.
@@ -68,13 +97,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	startTime := time.Now()
 
+	var reqAuth bool
 	var targetURL *url.URL
 	var longestPrefix string
 
-	for prefix, backend := range h.routes {
-		if len(prefix) > len(longestPrefix) && strings.HasPrefix(r.URL.Path, prefix) {
-			longestPrefix = prefix
-			targetURL = backend
+	for p, s := range h.Routes {
+		if len(p) > len(longestPrefix) && strings.HasPrefix(r.URL.Path, p) {
+			longestPrefix = p
+			targetURL = s.Url
+			reqAuth = s.RequireAuth
 		}
 	}
 
@@ -83,11 +114,31 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if reqAuth {
+
+		tkn, err := h.ValidateAuthHeader(r)
+		if err != nil {
+			utils.WriteError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+
+		token, err := h.TokenValidator.Validate(tkn)
+		if err != nil {
+			utils.UnauthorizedError(w, r, err)
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			ctx := context.WithValue(r.Context(), "claims", claims)
+			r = r.WithContext(ctx)
+		}
+	}
+
 	// Create backend request
 	outReq := h.createProxyRequest(r, targetURL)
 
-	// Execute request with circuit breaker
-	resp, err := h.circuitBreaker.Execute(outReq)
+	// Execute request with circuit breaker and client
+	resp, err := h.circuitBreaker.Execute(outReq, h.client)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadGateway, "backend error")
 		log.Printf("Backend error: %v", err)
@@ -95,18 +146,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	// Copy response headers
-	for key, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(key, value)
-		}
+	if err := h.CreateNewResponse(w, resp); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("Backend error: %v", err)
+		return
 	}
-
-	// Copy status code
-	w.WriteHeader(resp.StatusCode)
-
-	// Copy response body
-	io.Copy(w, resp.Body)
 
 	// Log request details
 	log.Printf(
@@ -120,7 +164,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // createProxyRequest builds a new HTTP request to sent to the target backend.
-// It:
 //  1. Clones the incoming request URL and replaces scheme + host
 //  2. Merges query parameters from both incoming request and target
 //  3. Copies all headers to preserve metadata (auth, content-type, etc.)
@@ -165,4 +208,65 @@ func (h *Handler) createProxyRequest(req *http.Request, target *url.URL) *http.R
 	outReq.Header.Set("X-Forwarded-Proto", req.URL.Scheme)
 
 	return outReq
+}
+
+func (h *Handler) ValidateAuthHeader(r *http.Request) (string, error) {
+
+	authHeaders := r.Header["Authorization"]
+
+	// Prevent multiple headers
+	if len(authHeaders) == 0 {
+		return "", e.ErrMissingAuthHeader
+	}
+
+	if len(authHeaders) > 1 {
+		return "", e.ErrWrongAuthHeader
+	}
+
+	authHeader := strings.TrimSpace(authHeaders[0])
+
+	parts := strings.SplitN(authHeader, " ", 2)
+
+	if len(parts) != 2 {
+		return "", e.ErrWrongAuthHeader
+	}
+
+	scheme := strings.ToLower(strings.TrimSpace(parts[0]))
+	if scheme != "bearer" {
+		return "", e.ErrWrongAuthHeader
+	}
+
+	token := strings.TrimSpace(parts[1])
+
+	if token == "" {
+		return "", e.ErrWrongAuthHeader
+	}
+
+	// Optional security check
+	if len(token) > 4096 {
+		return "", e.ErrWrongAuthHeader
+	}
+
+	return token, nil
+}
+
+func (h *Handler) CreateNewResponse(w http.ResponseWriter, resp *http.Response) error {
+
+	// Copy response headers
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	// Copy status code
+	w.WriteHeader(resp.StatusCode)
+
+	// Copy response body
+	_, err := io.Copy(w, resp.Body)
+	if err != nil {
+		return errors.New("backend error: io copy resp.Body")
+
+	}
+	return nil
 }

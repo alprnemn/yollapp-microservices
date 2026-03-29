@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/alprnemn/yollapp-microservices/pkg/config"
+	"github.com/alprnemn/yollapp-microservices/shared/config"
 	"github.com/joho/godotenv"
 	"log"
 	"time"
@@ -67,10 +67,8 @@ type CircuitBreakerConfig struct {
 	ResetTimeout     time.Duration // Duration to wait before allowing requests again (half-open state)
 }
 
-const envPath = "services/apigateway/.env"
-
 func Load() Config {
-	if err := godotenv.Load(envPath); err != nil {
+	if err := godotenv.Load("services/apigateway/.env"); err != nil {
 		log.Fatal("error occurred while getting envs")
 	}
 

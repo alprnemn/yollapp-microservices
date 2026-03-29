@@ -2,9 +2,9 @@ package http
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	httpConfig "github.com/alprnemn/yollapp-microservices/services/user/internal/config/http"
+	httpConfig "github.com/alprnemn/yollapp-microservices/services/user/internal/config"
+	"github.com/alprnemn/yollapp-microservices/services/user/internal/db"
 	userHandler "github.com/alprnemn/yollapp-microservices/services/user/internal/handler/http"
 	"github.com/alprnemn/yollapp-microservices/services/user/internal/repository"
 	userService "github.com/alprnemn/yollapp-microservices/services/user/internal/service"
@@ -30,11 +30,20 @@ func New(config httpConfig.Config) *Server {
 
 // Run starts the HTTP server and handles graceful shutdown.
 func (s *Server) Run() error {
+
+	database, err := db.New(
+		s.Config.DBConfig.Address,
+		s.Config.DBConfig.MaxOpenConns,
+		s.Config.DBConfig.MaxIdleConns,
+		s.Config.DBConfig.MaxIdleTime,
+	)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
 	router := http.NewServeMux()
 
-	db := &sql.DB{}
-
-	repo := repository.NewRepository(db)
+	repo := repository.NewRepository(database)
 
 	service := userService.NewService(repo)
 

@@ -3,12 +3,15 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/alprnemn/yollapp-microservices/services/user/internal/model"
+	"errors"
+	m "github.com/alprnemn/yollapp-microservices/services/user/internal/model"
+	"log"
+	"time"
 )
 
 type UserRepository interface {
-	GetAllUsers(ctx context.Context) ([]model.User, error)
-	RegisterUser(ctx context.Context, user model.User) (model.User, error)
+	GetByID(ctx context.Context, ID int) (*m.User, error)
+	Create(ctx context.Context, user m.CreateUserDTO) (int, error)
 }
 
 type Repository struct {
@@ -21,10 +24,50 @@ func NewRepository(db *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) GetAllUsers(ctx context.Context) ([]model.User, error) {
-	return nil, nil
+const QueryTimeoutDuration = time.Second * 3
+
+func (r *Repository) GetByID(ctx context.Context, ID int) (*m.User, error) {
+	log.Println("repository layer")
+	query := "SELECT id,first_name, last_name,username, email,age FROM users WHERE id = $1"
+
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	user := &m.User{}
+	err := r.DB.QueryRowContext(ctx, query, ID).Scan(
+		&user.ID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Email,
+		&user.Age,
+	)
+	if err != nil {
+		return nil, errors.New("error getting user")
+	}
+
+	return user, nil
+
 }
 
-func (r *Repository) RegisterUser(ctx context.Context) (*model.User, error) {
-	return nil, nil
+func (r *Repository) Create(ctx context.Context, user m.CreateUserDTO) (int, error) {
+	query := "INSERT INTO users VALUES ($1,$2,$3,$4,$5,$6,$7)"
+
+	result, err := r.DB.ExecContext(ctx,
+		query,
+		user.ID,
+		user.FirstName,
+		user.LastName,
+		user.Email,
+		user.Password,
+		user.Age,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	n, err := result.RowsAffected()
+	if n == 0 || err != nil {
+		return 0, err
+	}
 }

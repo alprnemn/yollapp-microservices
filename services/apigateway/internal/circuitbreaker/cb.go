@@ -2,6 +2,7 @@ package circuitbreaker
 
 import (
 	"fmt"
+	cl "github.com/alprnemn/yollapp-microservices/services/apigateway/internal/client/http"
 	"github.com/alprnemn/yollapp-microservices/services/apigateway/internal/config"
 	"net/http"
 	"sync"
@@ -47,12 +48,12 @@ func (cb *CircuitBreaker) AllowRequest() bool {
 
 // Execute performs the HTTP request using the default client
 // and updates the circuit breaker state on failure
-func (cb *CircuitBreaker) Execute(req *http.Request) (*http.Response, error) {
+func (cb *CircuitBreaker) Execute(req *http.Request, client *cl.Client) (*http.Response, error) {
 	if !cb.AllowRequest() {
 		return nil, fmt.Errorf("circuit breaker open")
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
 		cb.RecordFailure()
 		return nil, err

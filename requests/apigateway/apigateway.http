@@ -1,3 +1,18 @@
 ### GET request to example server
-GET http://localhost:8080/users
+GET http://localhost:8080/users/health
 Content-Type: application/json
+
+
+###POST AUTH
+POST http://127.0.0.1:8080/auth/register
+Content-Type: application/json
+
+{
+  "username": "alperen",
+  "password": "asdasd"
+}
+
+###POST AUTH
+GET http://127.0.0.1:8080/auth/login
+Content-Type: application/json
+

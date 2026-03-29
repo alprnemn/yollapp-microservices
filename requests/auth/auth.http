@@ -1,0 +1,8 @@
+
+POST http://127.0.0.1:8082/auth/login
+Content-Type: application/json
+
+{
+    "asd":23
+}
+###

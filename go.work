@@ -1,7 +1,6 @@
 go 1.25.5
 
 use (
-	./pkg
 	./services/apigateway
 	./services/auth
 	./services/notification
@@ -9,4 +8,5 @@ use (
 	./services/payment
 	./services/seller
 	./services/user
+	./shared
 )

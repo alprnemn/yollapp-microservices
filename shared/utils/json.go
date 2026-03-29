@@ -25,10 +25,6 @@ func WriteError(w http.ResponseWriter, status int, message string) {
 
 func ParseJSON(w http.ResponseWriter, req *http.Request, data any) error {
 
-	if req.Header.Get("Content-Type") != "application/json" {
-		return errors.New("content type must be application/json")
-	}
-
 	req.Body = http.MaxBytesReader(w, req.Body, int64(MaxBytes))
 
 	if req.Body == nil {
@@ -40,7 +36,7 @@ func ParseJSON(w http.ResponseWriter, req *http.Request, data any) error {
 
 	if err := decoder.Decode(data); err != nil {
 		if errors.Is(err, io.EOF) {
-			return fmt.Errorf("request body must not be empty")
+			return errors.New("request body must not be empty")
 		}
 
 		// Wrong type (e.g., string instead of number)
@@ -60,7 +56,7 @@ func ParseJSON(w http.ResponseWriter, req *http.Request, data any) error {
 
 	// Ensure only one JSON object
 	if decoder.More() {
-		return fmt.Errorf("request body must only contain a single JSON object")
+		return errors.New("request body must only contain a single JSON object")
 	}
 
 	return nil
