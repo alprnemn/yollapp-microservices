@@ -1,15 +1,33 @@
 package model
 
+import (
+	"time"
+)
+
 type User struct {
-	ID        int64  `json:"id,omitempty"`
-	FirstName string `json:"firstName,omitempty"`
-	LastName  string `json:"lastName,omitempty"`
-	Username  string `json:"username,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Age       uint8  `json:"age,omitempty"`
-	Password  string `json:"-"`
+	ID        string
+	FirstName string
+	LastName  string
+	Username  string
+	Email     string
+	Age       int
+	IsActive  bool
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Password  string
 }
 
 type CreateUserDTO struct {
-	User
+	FirstName string `json:"firstname"`
+	LastName  string `json:"lastname"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Phone     string `json:"phone"`
+	Password  string `json:"password"`
+}
+
+type CreateUserResponseDTO struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }

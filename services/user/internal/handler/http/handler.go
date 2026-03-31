@@ -22,7 +22,7 @@ func New(service *service.Service) *Handler {
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("GET /user/{id}", h.GetUserHandler)
 	router.HandleFunc("GET /user/health", h.HealthCheckHandler)
-	router.HandleFunc("POST /user/create", h.HealthCheckHandler)
+	router.HandleFunc("POST /user/create", h.CreateUserHandler)
 }
 
 func (h *Handler) GetUserHandler(w http.ResponseWriter, req *http.Request) {
@@ -33,16 +33,16 @@ func (h *Handler) GetUserHandler(w http.ResponseWriter, req *http.Request) {
 
 	log.Println("id: ", idInt)
 
-	user, err := h.Service.GetUser(req.Context(), idInt)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	//user, err := h.Service.GetUser(req.Context(), idInt)
+	//if err != nil {
+	//	utils.WriteError(w, http.StatusInternalServerError, err.Error())
+	//	return
+	//}
 
-	if err := utils.WriteJSON(w, http.StatusOK, user); err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	//if err := utils.WriteJSON(w, http.StatusOK, user); err != nil {
+	//	utils.WriteError(w, http.StatusInternalServerError, err.Error())
+	//	return
+	//}
 
 }
 
@@ -58,14 +58,24 @@ func (h *Handler) HealthCheckHandler(w http.ResponseWriter, req *http.Request) {
 
 func (h *Handler) CreateUserHandler(w http.ResponseWriter, req *http.Request) {
 
-	var CreateUserDTO *model.CreateUserDTO
+	var CreateUserDTO model.CreateUserDTO
 
 	if err := utils.ParseJSON(w, req, &CreateUserDTO); err != nil {
 		utils.BadRequestResponse(w, req, err)
 		return
 	}
 
+	ctx := req.Context()
 
-	h.Service.Create(>)
+	res, err := h.Service.Create(ctx, &CreateUserDTO)
+	if err != nil {
+		utils.BadRequestResponse(w, req, err)
+		return
+	}
+
+	if err := utils.WriteJSON(w, http.StatusCreated, res); err != nil {
+		utils.InternalServerError(w, req, err)
+		return
+	}
 
 }

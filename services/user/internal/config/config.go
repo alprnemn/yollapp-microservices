@@ -29,9 +29,8 @@ func (s ServerConfig) GetFullAddr() string {
 }
 
 func Load() Config {
-	if err := godotenv.Load("services/user/.env"); err != nil {
-		log.Printf(err.Error())
-		log.Fatal("error occurred while getting envs")
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("error occurred while getting envs: %s", err.Error())
 	}
 
 	return Config{

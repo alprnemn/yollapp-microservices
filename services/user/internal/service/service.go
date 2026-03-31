@@ -4,7 +4,6 @@ import (
 	"context"
 	m "github.com/alprnemn/yollapp-microservices/services/user/internal/model"
 	r "github.com/alprnemn/yollapp-microservices/services/user/internal/repository"
-	"log"
 )
 
 type Service struct {
@@ -17,25 +16,24 @@ func NewService(repo r.UserRepository) *Service {
 	}
 }
 
-func (s *Service) GetUser(ctx context.Context, ID int) (*m.User, error) {
-	log.Println("servicelayer")
+func (s *Service) Create(ctx context.Context, user *m.CreateUserDTO) (*m.CreateUserResponseDTO, error) {
 
-	user, err := s.repository.GetByID(ctx, ID)
+	err := s.repository.Create(ctx, user)
 	if err != nil {
 		return nil, err
 	}
 
-	return user, nil
-
-}
-
-func (s *Service) Create(ctx context.Context, user m.CreateUserDTO) (int, error) {
-
-	user, err := s.repository.Create(ctx, ID)
+	usr, err := s.repository.GetByEmail(ctx, user.Email)
 	if err != nil {
 		return nil, err
 	}
 
-	return 0, nil
+	resp := &m.CreateUserResponseDTO{
+		ID:       usr.ID,
+		Username: usr.Username,
+		Email:    usr.Email,
+	}
+
+	return resp, nil
 
 }

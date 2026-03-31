@@ -27,7 +27,7 @@ func NewTokenValidator(exp time.Duration, secret, issuer string) *TokenValidator
 //
 //	tokenString, err := token.SignedString([]byte(a.secret))
 //	if err != nil {
-//		return "", errors.New("error occurred while generating token")
+//		return "", errs.New("error occurred while generating token")
 //	}
 //	return tokenString, nil
 //}

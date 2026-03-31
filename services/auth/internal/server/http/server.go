@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/config"
+	userGateway "github.com/alprnemn/yollapp-microservices/services/auth/internal/gateway/http/user"
 	handler "github.com/alprnemn/yollapp-microservices/services/auth/internal/handler/http"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/jwt"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/service"
@@ -31,7 +32,9 @@ func (s *Server) Run() error {
 
 	router := http.NewServeMux()
 
-	svc := service.New()
+	usergway := userGateway.New(":8081")
+
+	svc := service.New(usergway)
 
 	h := handler.New(svc)
 

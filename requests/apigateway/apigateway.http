@@ -8,8 +8,12 @@ POST http://127.0.0.1:8080/auth/register
 Content-Type: application/json
 
 {
-  "username": "alperen",
-  "password": "asdasd"
+  "firstname": "alperen",
+  "lastname": "emin",
+  "username": "alprn",
+  "email": "alperen@hotmail.com",
+  "phone": "05357343434",
+  "password": "asdasdasd"
 }
 
 ###POST AUTH

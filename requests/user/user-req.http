@@ -1,2 +1,16 @@
 ### GET request to example server
 GET http://localhost:8080/user/1
+
+### CREATE
+POST http://127.0.0.1:8081/user/create
+Content-Type: application/json
+
+{
+  "firstname": "yarensu",
+  "lastname": "emin",
+  "username": "yarensu",
+  "email": "yaren@hotmail.com",
+  "phone": "05357654944",
+  "age": 26,
+  "password": "ssccdzxv"
+}

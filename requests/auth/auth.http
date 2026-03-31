@@ -1,8 +1,14 @@
 
-POST http://127.0.0.1:8082/auth/login
+### CREATE
+POST http://127.0.0.1:8080/auth/register
 Content-Type: application/json
 
 {
-    "asd":23
+  "firstname": "s",
+  "lastname": "s",
+  "username": "yarensu",
+  "email": "yaren@hotmail.com",
+  "phone": "05357654944",
+  "password": "ssccdzxv"
 }
 ###

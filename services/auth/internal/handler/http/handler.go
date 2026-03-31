@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/model"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/service"
+	"github.com/alprnemn/yollapp-microservices/services/auth/pkg/validator"
 	"github.com/alprnemn/yollapp-microservices/shared/utils"
-	"log"
 	"net/http"
 )
 
@@ -25,15 +25,31 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) RegisterHandler(w http.ResponseWriter, req *http.Request) {
-	var registerUserDTO *model.RegisterUserDTO
 
-	if err := utils.ParseJSON(w, req, &registerUserDTO); err != nil {
+	var payload model.RegisterUserDTO
+
+	if err := utils.ParseJSON(w, req, &payload); err != nil {
 		utils.BadRequestResponse(w, req, err)
 		return
 	}
 
-	log.Println("username: ", registerUserDTO.Username)
-	log.Println("password: ", registerUserDTO.Password)
+	if err := validator.ValidatePayload(payload); err != nil {
+		utils.BadRequestResponse(w, req, err)
+		return
+	}
+
+	ctx := req.Context()
+
+	res, err := h.Service.Register(ctx, &payload)
+	if err != nil {
+		utils.BadRequestResponse(w, req, err)
+		return
+	}
+
+	if err := utils.WriteJSON(w, http.StatusCreated, res); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "error occccccuurreedd")
+		return
+	}
 
 }
 func (h *Handler) ActivateUserHandler(w http.ResponseWriter, req *http.Request)  {}

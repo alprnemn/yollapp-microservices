@@ -15,7 +15,7 @@ compose-down:
 	@docker compose stop
 
 connect-database:
-	@docker exec -it c61faf760605 psql -U $(DB_USER) -d $(DB_NAME)
+	@docker exec -it 2fe362e31ed9 psql -U $(DB_USER) -d $(DB_NAME)
 
 
 .PHONY: migration-create
