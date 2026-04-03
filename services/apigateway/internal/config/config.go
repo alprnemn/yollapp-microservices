@@ -109,7 +109,7 @@ func Load() Config {
 		JWTConfig: JWTConfig{
 			Secret: config.GetString("JWT_SECRET_KEY", "asdasd"),
 			Issuer: config.GetString("JWT_ISSUER", "asdfg"),
-			Exp:    time.Duration(config.GetInt("JWT_EXP_SECOND", 15)),
+			Exp:    time.Second * time.Duration(config.GetInt("JWT_EXP_SECOND", 45)),
 		},
 	}
 

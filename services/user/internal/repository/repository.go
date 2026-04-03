@@ -99,3 +99,29 @@ func (r *Repository) Create(ctx context.Context, user *m.CreateUserDTO) error {
 
 	return nil
 }
+
+func (r *Repository) CreateUserInvitation(ctx context.Context, ID, idempotencyKey, token string, expireDate time.Duration) error {
+
+	query := `INSERT INTO user_invitation 
+		(user_id,idempotency_key,token,expire_date)
+		VALUES ($1,$2,$3,$4)
+	`
+
+	result, err := r.DB.ExecContext(ctx, query, token, ID, time.Now().Add(expireDate), idempotencyKey)
+	if err != nil {
+		return err
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		log.Println(err.Error())
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	if rows != 1 {
+		return fmt.Errorf("expected 1 row affected, got %d", rows)
+	}
+
+	return nil
+
+}

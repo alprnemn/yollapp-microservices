@@ -10,6 +10,12 @@ import (
 type Config struct {
 	ServerConfig ServerConfig
 	JWTConfig    JWTConfig
+	MailerConfig MailerConfig
+}
+
+type MailerConfig struct {
+	FromMail string
+	ApiKey   string
 }
 
 type ServerConfig struct {
@@ -41,7 +47,11 @@ func Load() Config {
 		JWTConfig: JWTConfig{
 			Secret: config.GetString("JWT_SECRET_KEY", "asdasd"),
 			Issuer: config.GetString("JWT_ISSUER", "asdfg"),
-			Exp:    time.Duration(config.GetInt("JWT_EXP_SECOND", 15)),
+			Exp:    time.Second * time.Duration(config.GetInt("JWT_EXP_SECOND", 45)),
+		},
+		MailerConfig: MailerConfig{
+			FromMail: config.GetString("RESEND_FROM_MAIL", "alprnemn@hotmail.com"),
+			ApiKey:   config.GetString("RESEND_API_KEY", "DONT_LOOK_AT_ME"),
 		},
 	}
 

@@ -35,5 +35,4 @@ func (s *Service) Create(ctx context.Context, user *m.CreateUserDTO) (*m.CreateU
 	}
 
 	return resp, nil
-
 }

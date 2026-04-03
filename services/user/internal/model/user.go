@@ -15,19 +15,11 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Password  string
+	Role      Role
+	Address   *Address
 }
 
-type CreateUserDTO struct {
-	FirstName string `json:"firstname"`
-	LastName  string `json:"lastname"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Phone     string `json:"phone"`
-	Password  string `json:"password"`
-}
-
-type CreateUserResponseDTO struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+type Role struct {
+	ID   int
+	Name string
 }
