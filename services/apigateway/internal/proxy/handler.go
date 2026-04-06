@@ -82,6 +82,11 @@ func (h *Handler) RegisterRoutes() {
 		panic(err)
 	}
 
+	err = h.AddRoute("/auth/activate", "http://127.0.0.1:8082", false)
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 // ServeHTTP implements the http.Handler interface.

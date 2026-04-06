@@ -4,13 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/alprnemn/yollapp-microservices/services/auth/model"
-	"log"
+	m "github.com/alprnemn/yollapp-microservices/services/auth/internal/model"
 )
 
 type AuthRepository interface {
-	CreateUserInvitation(ctx context.Context, inv *model.UserInvitation) error
-	DeleteInvitation(ctx context.Context, token string) error
+	CreateUserInvitation(ctx context.Context, inv *m.Invitation) error
+	DeleteInvitation(ctx context.Context, userID string) error
+	GetInvitationByToken(ctx context.Context, token string) (*m.Invitation, error)
 }
 
 type Repository struct {
@@ -23,12 +23,12 @@ func New(db *sql.DB) *Repository {
 	}
 }
 
-func (r *Repository) CreateUserInvitation(ctx context.Context, inv *model.UserInvitation) error {
-	log.Println("hello from repo layer: ", inv.Token)
+func (r *Repository) CreateUserInvitation(ctx context.Context, inv *m.Invitation) error {
+
 	query := `
-	INSERT INTO user_invitations 
-	(user_id, token, expires_at)
-	VALUES (?, ?, ?)
+		INSERT INTO user_invitations 
+		(user_id, token, expires_at)
+		VALUES (?, ?, ?)
 	`
 
 	result, err := r.DB.ExecContext(
@@ -54,16 +54,16 @@ func (r *Repository) CreateUserInvitation(ctx context.Context, inv *model.UserIn
 	return nil
 }
 
-func (r *Repository) DeleteInvitation(ctx context.Context, token string) error {
+func (r *Repository) DeleteInvitation(ctx context.Context, userID string) error {
 
 	query := `
 	DELETE FROM user_invitations
-	WHERE token = ?
+	WHERE user_id = ?
 	`
 
-	result, err := r.DB.ExecContext(ctx, query, token)
+	result, err := r.DB.ExecContext(ctx, query, userID)
 	if err != nil {
-		return fmt.Errorf("error executing query: %s", err.Error())
+		return fmt.Errorf("error executing query delete invitation: %s", err.Error())
 	}
 
 	rows, err := result.RowsAffected()
@@ -76,4 +76,23 @@ func (r *Repository) DeleteInvitation(ctx context.Context, token string) error {
 	}
 
 	return nil
+}
+
+func (r *Repository) GetInvitationByToken(ctx context.Context, token string) (*m.Invitation, error) {
+
+	query := `SELECT * FROM user_invitations WHERE token = ?`
+
+	inv := &m.Invitation{}
+
+	err := r.DB.QueryRowContext(ctx, query, token).Scan(
+		&inv.ID,
+		&inv.UserID,
+		&inv.Token,
+		&inv.ExpiresAt,
+		&inv.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("run query error getting invitation by token: %s", err.Error())
+	}
+
+	return inv, nil
 }

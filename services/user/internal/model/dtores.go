@@ -5,3 +5,7 @@ type CreateUserResponseDTO struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
 }
+
+type ActivateResponse struct {
+	Message string `json:"message"`
+}

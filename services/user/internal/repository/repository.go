@@ -15,6 +15,7 @@ import (
 type UserRepository interface {
 	GetByEmail(ctx context.Context, email string) (*m.User, error)
 	Create(ctx context.Context, user *m.CreateUserDTO) error
+	ActivateUser(ctx context.Context, user *m.ActivateUserDTO) error
 }
 
 type Repository struct {
@@ -124,4 +125,15 @@ func (r *Repository) CreateUserInvitation(ctx context.Context, ID, idempotencyKe
 
 	return nil
 
+}
+
+func (r *Repository) ActivateUser(ctx context.Context, user *m.ActivateUserDTO) error {
+	query := "UPDATE users SET is_active = true WHERE id = $1"
+
+	_, err := r.DB.ExecContext(ctx, query, user.ID)
+	if err != nil {
+		return fmt.Errorf("error executing query user repo activate user: %s", err.Error())
+	}
+
+	return nil
 }

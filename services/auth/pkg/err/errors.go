@@ -1,31 +1,6 @@
-package errs
+package err
 
-import (
-	"errors"
-	"fmt"
-)
-
-type ErrorResponse struct {
-	Message string `json:"error"`
-}
-
-func (e *ErrorResponse) Error() string {
-	return e.Message
-}
-
-type AppError struct {
-	Code    string
-	Message string
-	Err     error
-}
-
-func (e *AppError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
-}
-
-func (e *AppError) Unwrap() error {
-	return e.Err
-}
+import "errors"
 
 var (
 	ErrNotFound          = errors.New("user not found")

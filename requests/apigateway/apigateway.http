@@ -16,7 +16,15 @@ Content-Type: application/json
   "password": "asdasdasd"
 }
 
+### post actıvate user
+GET http://127.0.0.1:8080/auth/activate?token=ea233a93-3615-4e7f-8623-7c4339974684
+
+
+
 ###POST AUTH
-GET http://127.0.0.1:8080/auth/login
+PATCH http://127.0.0.1:8081/user/activate
 Content-Type: application/json
 
+{
+  "userid" : "106fc317-03eb-46ba-b96b-1cf81b4cf1d4"
+}

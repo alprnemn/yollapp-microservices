@@ -8,3 +8,7 @@ type CreateUserDTO struct {
 	Phone     string `json:"phone"`
 	Password  string `json:"password"`
 }
+
+type ActivateUserDTO struct {
+	ID string `json:"userid"`
+}

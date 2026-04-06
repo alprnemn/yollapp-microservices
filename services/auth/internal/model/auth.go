@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type RegisterUserDTO struct {
 	FirstName string `json:"firstname" validate:"required,min=3,max=20"`
 	LastName  string `json:"lastname" validate:"required,min=3,max=20"`
@@ -9,6 +11,21 @@ type RegisterUserDTO struct {
 	Password  string `json:"password" validate:"required,min=6,max=25"`
 }
 
+type ActivateResponse struct {
+	Message string `json:"message"`
+}
+
+type ActivateUserDTO struct {
+	ID string `json:"userid"`
+}
+
+type Invitation struct {
+	ID        string
+	UserID    string
+	Token     string
+	ExpiresAt time.Time
+	CreatedAt time.Time
+}
 type CreateUserResponseDTO struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`

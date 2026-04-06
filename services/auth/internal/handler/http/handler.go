@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"fmt"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/model"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/service"
@@ -52,7 +53,32 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 }
-func (h *Handler) ActivateUserHandler(w http.ResponseWriter, req *http.Request)  {}
+
+func (h *Handler) ActivateUserHandler(w http.ResponseWriter, req *http.Request) {
+
+	token := req.URL.Query().Get("token")
+
+	if token == "" {
+		utils.BadRequestResponse(w, req, errors.New("token is required"))
+		return
+	}
+
+	ctx := req.Context()
+
+	// validate token (find by token)
+	rsp, err := h.Service.ActivateUser(ctx, token)
+	if err != nil {
+		utils.BadRequestResponse(w, req, err)
+		return
+	}
+
+	// return result
+	if err := utils.WriteJSON(w, http.StatusOK, rsp); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "error occurred")
+		return
+	}
+}
+
 func (h *Handler) RefreshTokenHandler(w http.ResponseWriter, req *http.Request)  {}
 func (h *Handler) ResetPasswordHandler(w http.ResponseWriter, req *http.Request) {}
 func (h *Handler) LogoutHandler(w http.ResponseWriter, req *http.Request)        {}

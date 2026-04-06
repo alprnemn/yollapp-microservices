@@ -36,3 +36,13 @@ func (s *Service) Create(ctx context.Context, user *m.CreateUserDTO) (*m.CreateU
 
 	return resp, nil
 }
+
+func (s *Service) Activate(ctx context.Context, user *m.ActivateUserDTO) error {
+
+	err := s.repository.ActivateUser(ctx, user)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

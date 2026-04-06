@@ -21,17 +21,6 @@ func NewTokenValidator(exp time.Duration, secret, issuer string) *TokenValidator
 	}
 }
 
-//func (a *Authenticator) GenerateToken(claims jwt.Claims) (string, error) {
-//
-//	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-//
-//	tokenString, err := token.SignedString([]byte(a.secret))
-//	if err != nil {
-//		return "", errs.New("error occurred while generating token")
-//	}
-//	return tokenString, nil
-//}
-
 func (t *TokenValidator) Validate(token string) (*jwt.Token, error) {
 
 	keyFunc := func(token *jwt.Token) (any, error) {

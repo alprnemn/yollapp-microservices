@@ -8,9 +8,8 @@ import (
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/gateway/http/user"
 	j "github.com/alprnemn/yollapp-microservices/services/auth/internal/jwt"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/mailer"
-	"github.com/alprnemn/yollapp-microservices/services/auth/internal/model"
+	m "github.com/alprnemn/yollapp-microservices/services/auth/internal/model"
 	"github.com/alprnemn/yollapp-microservices/services/auth/internal/repository"
-	m "github.com/alprnemn/yollapp-microservices/services/auth/model"
 	"github.com/alprnemn/yollapp-microservices/shared/errs"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -39,14 +38,14 @@ func (s *Service) Login() error {
 	return nil
 }
 
-func (s *Service) Register(ctx context.Context, payload *model.RegisterUserDTO) (*model.RegisterUserResponseDTO, error) {
+func (s *Service) Register(ctx context.Context, payload *m.RegisterUserDTO) (*m.RegisterUserResponseDTO, error) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, errs.ErrGeneratePassword
 	}
 
-	req := &model.RegisterUserDTO{
+	req := &m.RegisterUserDTO{
 		FirstName: payload.FirstName,
 		LastName:  payload.LastName,
 		Username:  payload.Username,
@@ -81,7 +80,7 @@ func (s *Service) Register(ctx context.Context, payload *model.RegisterUserDTO) 
 	hash := sha256.Sum256([]byte(plainToken))
 	hashToken := hex.EncodeToString(hash[:])
 
-	inv := &m.UserInvitation{
+	inv := &m.Invitation{
 		UserID:    rsp.ID,
 		Token:     hashToken,
 		ExpiresAt: time.Now().Add(24 * time.Hour),
@@ -101,8 +100,32 @@ func (s *Service) Register(ctx context.Context, payload *model.RegisterUserDTO) 
 	return rsp, nil
 }
 
-func (s *Service) ActivateUser() error {
-	return nil
+func (s *Service) ActivateUser(ctx context.Context, token string) (*m.ActivateResponse, error) {
+
+	hash := sha256.Sum256([]byte(token))
+	hashToken := hex.EncodeToString(hash[:])
+
+	// get invitation
+	inv, err := s.Repository.GetInvitationByToken(ctx, hashToken)
+	if err != nil {
+		return nil, err
+	}
+
+	actUserDTO := &m.ActivateUserDTO{
+		ID: inv.UserID,
+	}
+
+	rsp, err := s.userGateway.ActivateUser(ctx, actUserDTO)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.Repository.DeleteInvitation(ctx, actUserDTO.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return rsp, nil
 }
 
 func (s *Service) RefreshToken() error {

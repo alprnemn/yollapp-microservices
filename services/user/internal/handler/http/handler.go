@@ -23,6 +23,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("GET /user/{id}", h.GetUserHandler)
 	router.HandleFunc("GET /user/health", h.HealthCheckHandler)
 	router.HandleFunc("POST /user/create", h.CreateUserHandler)
+	router.HandleFunc("PATCH /user/activate", h.ActivateUserHandler)
 }
 
 func (h *Handler) GetUserHandler(w http.ResponseWriter, req *http.Request) {
@@ -77,5 +78,31 @@ func (h *Handler) CreateUserHandler(w http.ResponseWriter, req *http.Request) {
 		utils.InternalServerError(w, req, err)
 		return
 	}
+
+}
+
+func (h *Handler) ActivateUserHandler(w http.ResponseWriter, req *http.Request) {
+
+	var payload *model.ActivateUserDTO
+
+	if err := utils.ParseJSON(w, req, &payload); err != nil {
+		utils.BadRequestResponse(w, req, err)
+		return
+	}
+
+	ctx := req.Context()
+
+	err := h.Service.Activate(ctx, payload)
+	if err != nil {
+		utils.InternalServerError(w, req, err)
+		return
+	}
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "user activated"}); err != nil {
+		utils.InternalServerError(w, req, err)
+		return
+	}
+
+	return
 
 }
