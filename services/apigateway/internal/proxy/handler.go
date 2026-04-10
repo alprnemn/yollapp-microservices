@@ -89,15 +89,6 @@ func (h *Handler) RegisterRoutes() {
 
 }
 
-// ServeHTTP implements the http.Handler interface.
-// It acts as a reverse proxy entry point:
-//  1. Matches incoming request path to a backend using the longest prefix match
-//  2. Creates a new request targeting the selected backend
-//  3. Sends the request via a circuit breaker for resilience
-//  4. Copies the backend response back to the client
-//
-// It also logs request details such as method, path, target service,
-// response status, and latency for observability.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	startTime := time.Now()
@@ -168,13 +159,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// createProxyRequest builds a new HTTP request to sent to the target backend.
-//  1. Clones the incoming request URL and replaces scheme + host
-//  2. Merges query parameters from both incoming request and target
-//  3. Copies all headers to preserve metadata (auth, content-type, etc.)
-//  4. Adds X-Forwarded-* headers to provide client context to the backend
-//
-// The returned request shares the original context for proper timeout and cancellation handling.
 func (h *Handler) createProxyRequest(req *http.Request, target *url.URL) *http.Request {
 
 	targetQuery := target.RawQuery

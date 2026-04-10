@@ -22,6 +22,7 @@ type DBConfig struct {
 type ServerConfig struct {
 	Host string
 	Port string
+	Name string
 }
 
 func (s ServerConfig) GetFullAddr() string {
@@ -37,6 +38,7 @@ func Load() Config {
 		ServerConfig: ServerConfig{
 			Host: config.GetString("PUBLIC_HOST", "http://127.0.0.1"),
 			Port: config.GetString("ADDRESS", ":8080"),
+			Name: config.GetString("SERVICE_NAME", "userservice"),
 		},
 		DBConfig: DBConfig{
 			Address:      config.GetString("DB_ADDR", "postgres://user:adminpassword@localhost/yollapi?sslmode=disable"),

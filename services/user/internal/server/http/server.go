@@ -8,6 +8,8 @@ import (
 	userHandler "github.com/alprnemn/yollapp-microservices/services/user/internal/handler/http"
 	"github.com/alprnemn/yollapp-microservices/services/user/internal/repository"
 	userService "github.com/alprnemn/yollapp-microservices/services/user/internal/service"
+	"github.com/alprnemn/yollapp-microservices/shared/discovery"
+	"github.com/alprnemn/yollapp-microservices/shared/discovery/consul"
 	"log"
 	"net/http"
 	"os"
@@ -30,6 +32,22 @@ func New(config httpConfig.Config) *Server {
 
 // Run starts the HTTP server and handles graceful shutdown.
 func (s *Server) Run() error {
+
+	registry, err := consul.New("localhost:8500")
+	if err != nil {
+		log.Fatalf("err: %s", err.Error())
+	}
+
+	ctx := context.Background()
+
+	instanceID := discovery.GenerateInstanceID(s.Config.ServerConfig.Name)
+
+	if err := registry.Register(ctx, instanceID, s.Config.ServerConfig.Name, s.Config.ServerConfig.GetFullAddr()); err != nil {
+		panic(err)
+	}
+	defer registry.Deregister(ctx, instanceID, s.Config.ServerConfig.Name)
+
+	go reportHealthy(instanceID, s.Config.ServerConfig.Name, registry)
 
 	database, err := db.New(
 		s.Config.DBConfig.Address,
@@ -84,4 +102,13 @@ func (s *Server) Run() error {
 	log.Printf("\033[38;5;214m Stopped HTTP server on %v \033[0m", s.Config.ServerConfig.Port)
 
 	return nil
+}
+
+func reportHealthy(instanceID, serviceName string, registry discovery.Registry) {
+	for {
+		if err := registry.ReportHealthyState(instanceID, serviceName); err != nil {
+			log.Println("Failed to report healthy state: " + err.Error())
+		}
+		time.Sleep(1 * time.Second)
+	}
 }

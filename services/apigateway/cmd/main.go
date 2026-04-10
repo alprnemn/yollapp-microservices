@@ -16,10 +16,7 @@ func main() {
 		cfg.RLConfig.Limit,
 	)
 
-	if err := server.New(
-		cfg,
-		rateLimiter,
-	).Run(); err != nil {
+	if err := server.New(cfg, rateLimiter).Run(); err != nil {
 		log.Fatal(err)
 	}
 }

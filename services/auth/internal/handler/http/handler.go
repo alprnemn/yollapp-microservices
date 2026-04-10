@@ -48,7 +48,7 @@ func (h *Handler) RegisterHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if err := utils.WriteJSON(w, http.StatusCreated, res); err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, "error occccccuurreedd")
+		utils.InternalServerError(w, req, err)
 		return
 	}
 
